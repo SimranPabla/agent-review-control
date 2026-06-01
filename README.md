@@ -91,8 +91,6 @@ The changed files stayed inside the allowed area, but one required command recei
 
 ## Current stage
 
-This repo is starting as a public dogfood and customer-validation surface.
-
 The goal is to run ARC on real AI-generated pull requests, show the Trust Brief to real reviewers, and learn whether teams want this control layer in their workflow.
 
 ## Who this is for
@@ -105,12 +103,6 @@ ARC is for teams that:
 - Want deterministic review receipts instead of another AI-generated opinion
 
 ## What we want to learn
-
-The business question is not "can ARC be built?"
-
-The real question is:
-
-> Will teams install, co-develop, or pay for a control layer that makes AI-generated PRs easier to trust?
 
 If you use AI coding agents in production repos and this pain is familiar, open an issue or reach out with a real PR you would want checked.
 
