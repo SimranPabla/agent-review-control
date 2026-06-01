@@ -1,8 +1,6 @@
 # Dogfood Plan
 
-This repo exists to create one useful public dogfood loop for ARC.
-
-The goal is not to polish the brand. The goal is to create evidence.
+This repo exists to create a useful public dogfood loop for ARC.
 
 ## Objective
 
