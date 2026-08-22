@@ -1,109 +1,154 @@
 # What ARC Is
 
-ARC stands for Agent Review Control.
+ARC stands for **Agent Review Control**.
 
-It is a deterministic review-control layer for AI coding agent work.
+It is an upstream integrity and review-control layer for AI coding-agent work.
 
-The product wedge is:
+The core primitive is:
 
 ```text
 Contract + Evidence + Verdict
 ```
 
+ARC's job is not to decide whether code is universally correct. Its job is to make the delegated assignment, the evidence produced during execution, and the final reviewer-facing verdict independently checkable.
+
 ## The problem
 
-AI coding agents can produce useful pull requests quickly, but the reviewer often inherits an unclear process:
+AI coding agents create two related reliability problems.
 
-- The task was vague.
-- The allowed scope was not frozen.
-- The agent touched extra files.
-- Tests may or may not have run.
-- The summary sounds confident, but the evidence is weak.
-- The reviewer has to reconstruct what happened from the diff.
+First, the agent can operate from an incorrect reconstruction of project state. Long conversations are compressed, new sessions reconstruct prior decisions, rejected directions can reappear, and important constraints can disappear.
 
-This creates review drag. The reviewer is not only reviewing code. They are also auditing the agent's behavior.
+Second, even when the assignment is correct, the agent can drift outside scope or report evidence that a reviewer cannot independently tie to the final repository state.
+
+That means a reviewer needs answers to two questions:
+
+1. Was the agent working from the correct approved task and project state?
+2. Did the final work and evidence remain consistent with that task?
+
+ARC addresses both questions.
 
 ## The ARC approach
 
-ARC separates three things that are often mixed together:
+ARC separates the assurance chain into five parts.
 
-1. **The assignment**
-   - What was the agent asked to do?
-   - What was in scope?
-   - What was out of scope?
-   - What evidence was required?
+### 1. Canonical project state
 
-2. **The work**
-   - What files changed?
-   - What commands were run?
-   - What evidence exists?
-   - What risky areas were touched?
+Chat is useful context but is not treated as authoritative project state.
 
-3. **The review receipt**
-   - Did the work match the assignment?
-   - What is missing?
-   - What should the reviewer inspect first?
+ARC reconstructs the current situation from canonical artifacts such as:
 
-## Gate 1: Before coding
+- repository files
+- Git history
+- tests and CI results
+- approved decisions and constraints
+- project trackers
+- continuity records
 
-Before the agent starts, ARC should capture a contract:
+This is the epistemic-integrity layer: establish what the agent should believe about the project before relying on its reasoning.
 
-- Task summary
-- Acceptance criteria
-- Allowed files or directories
-- Excluded files or directories
-- Non-goals
-- Required commands/tests
-- Risky areas
-- Reviewer focus
+### 2. Contract
 
-This makes the delegation clear enough for an agent, a human reviewer, and a verification tool.
+Before execution, ARC freezes the approved work boundary:
 
-## Gate 2: Before PR review
+- task and intended outcome
+- acceptance criteria
+- allowed scope
+- excluded scope
+- non-goals
+- required commands/tests
+- risk-sensitive areas
+- required evidence
+- reviewer focus
 
-Before the PR is reviewed, ARC checks:
+The executor cannot silently redefine the contract or self-approve a scope expansion.
 
-- Changed files against allowed/excluded scope
-- Required command receipts
-- Missing evidence
-- Risk-sensitive files
-- Dependency/config/security-sensitive changes
-- Scope drift
+### 3. Evidence
 
-Then it renders a short Trust Brief for the reviewer.
+During and after execution, ARC expects evidence that can be tied to the exact work being reviewed:
 
-## The Trust Brief
+- changed files and diff scope
+- commands/checks run
+- exit status and relevant outputs
+- repository/base/head identity
+- contract identity
+- assumptions, deviations, skipped checks, and known gaps
 
-The Trust Brief is not a long report.
+The agent's statement that a command ran or that a requirement was satisfied is context, not proof by itself.
 
-It should answer:
+### 4. Verification
 
-- What is the verdict?
-- Why?
-- What should the reviewer inspect first?
-- What evidence supports that verdict?
+ARC independently compares the final state and evidence against the frozen contract.
 
-## Verdicts
+Examples include:
 
-ARC uses three plain verdicts:
+- changed files against allowed/excluded scope
+- required command receipts
+- missing evidence
+- contract or repository-state drift
+- approval binding
+- stale or replayed evidence
+- risk-sensitive changes
 
-- `Pass`: the checked contract requirements were satisfied.
-- `Needs Review`: something is missing, risky, or outside the normal path.
-- `Blocked`: the contract was invalid, unsafe, or clearly violated.
+### 5. Verdict / Trust Brief
 
-`Pass` does not mean the code is correct. It means the checked ARC contract was satisfied.
+ARC produces one reviewer-facing result:
+
+- `Pass`
+- `Needs Review`
+- `Blocked`
+
+The Trust Brief should explain the deviation first: what matched, what did not, what evidence exists, and what a reviewer should inspect next.
+
+`Pass` does **not** mean the code is correct. It means the checked ARC contract and evidence requirements were satisfied.
+
+## ARC and execution governance
+
+ARC is intentionally upstream from runtime consequence/admissibility systems.
+
+For example, Google CAGE focuses on runtime governance: intercepting agent actions, applying policy, and determining whether an action can proceed to the environment.
+
+ARC asks a different question before that boundary becomes meaningful:
+
+> Is the agent operating from the correct project state and approved contract, and are the resulting claims/evidence tied to that contract?
+
+The two layers can compose:
+
+```text
+Canonical project state
+        |
+        v
+ARC contract / integrity checks
+        |
+        v
+Agent proposes action
+        |
+        v
+Runtime governance boundary
+        |
+        v
+Environment consequence
+```
+
+ARC is not a replacement for execution governance, and execution governance does not solve ARC's upstream project-state reconstruction problem.
 
 ## Product boundary
 
-ARC should stay narrow.
+ARC should remain narrow.
 
-It should not become:
+It is not:
 
-- A generic AI PR reviewer
-- A full compliance suite
-- A dashboard-first product
-- An auto-merge bot
-- A generic PR summary generator
+- a generic AI PR reviewer
+- a full compliance suite
+- a dashboard-first governance product
+- an auto-merge bot
+- a generic PR summary generator
+- a replacement for tests or CI
+- a proof of semantic truth
 
-The value is in deterministic control: the agent either stayed inside the approved assignment with evidence, or it did not.
+The value is in preserving **assignment integrity, evidence integrity, and reviewer-visible deviations** across AI coding work.
 
+## Public versus private implementation
+
+The public repository contains architecture, dogfood artifacts, and reviewer-facing examples.
+
+Active deterministic implementation work is currently private. The public repository should therefore be read as the public specification/evidence surface, not as a complete installable release of ARC.
